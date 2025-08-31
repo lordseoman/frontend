@@ -1,36 +1,83 @@
-import React, { useState, useEffect, Suspense } from 'react';
 import './App.css';
-import ErrorBoundary            from '@/components/ui/ErrorBoundary';
-import { API_DASHBOARD_TITLE }  from '@/config'
-import { ToastContainer }       from 'react-toastify';
 
+import { useEffect, useState } from 'react';
+import Navbar from './components/ui/Navbar';
+import LoginModal from './components/ui/LoginModal';
+import RegisterModal from './components/ui/RegisterModal';
+import RecoverModal from './components/ui/RecoverModal';
 
-function App() {  
+export default function App() {
+  const [modal, setModal] = useState(null); // 'login' | 'register' | 'recover' | null
+  const [recoverToken, setRecoverToken] = useState('');
+
+  // --- Optional: keep modal in the URL (?modal=login|register|recover&token=...)
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const sp = new URLSearchParams(window.location.search);
+      const m = sp.get('modal');
+      const t = sp.get('token') || '';
+      if (m === 'login' || m === 'register' || m === 'recover') {
+        setModal(m);
+        setRecoverToken(t);
+      } else {
+        setModal(null);
+        setRecoverToken('');
+      }
+    };
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    return () => window.removeEventListener('popstate', syncFromUrl);
+  }, []);
+
+  const openModal = (m, opts = {}) => {
+    setModal(m);
+    if (m === 'recover') setRecoverToken(opts.token || '');
+    // reflect in URL (no route lib needed)
+    const sp = new URLSearchParams(window.location.search);
+    if (m) sp.set('modal', m); else sp.delete('modal');
+    if (opts.token) sp.set('token', opts.token); else sp.delete('token');
+    const q = sp.toString();
+    const url = `${window.location.pathname}${q ? `?${q}` : ''}${window.location.hash}`;
+    window.history.pushState({}, '', url);
+  };
+
+  const closeModal = () => openModal(null);
+
   return (
-    <ErrorBoundary>
-      <ToastContainer 
-        position="top-right" 
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
+    <div className="min-h-screen bg-gray-100">
+      <Navbar
+        onLogin={() => openModal('login')}
+        onRegister={() => openModal('register')}
+        onRecover={() => openModal('recover')}
       />
-      <div className="frontend">
-        <header className="frontend-header grid grid-cols-3 items-center">
-          <div />
-          <h1 className="frontend-title text-center">{API_DASHBOARD_TITLE}</h1>
-          <div className="frontend-icons flex justify-end space-x-3">
-            <button><i className="fas fa-cog" /></button>
-            <button><i className="fas fa-bell" /></button>
-          </div>
-        </header>
-        <main className="frontend-main justify-center">
-          <div className="card-grid">
-            {cards.map(renderCard)}
-          </div>
-        </main>
-      </div>
-    </ErrorBoundary>
+
+      <main className="mx-auto px-10 py-6">
+        <h1 className="text-2xl font-semibold mb-2">Welcome</h1>
+        <p className="text-sm text-gray-600">Event details will appear here.</p>
+      </main>
+
+      {modal === 'login' && (
+        <LoginModal
+          onClose={closeModal}
+          goRegister={() => openModal('register')}
+          goRecover={() => openModal('recover')}
+        />
+      )}
+
+      {modal === 'register' && (
+        <RegisterModal
+          onClose={closeModal}
+          goLogin={() => openModal('login')}
+        />
+      )}
+
+      {modal === 'recover' && (
+        <RecoverModal
+          onClose={closeModal}
+          goLogin={() => openModal('login')}
+          defaultToken={recoverToken}
+        />
+      )}
+    </div>
   );
 }
-
-export default App;
