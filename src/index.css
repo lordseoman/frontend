@@ -1,0 +1,4 @@
+
+/* Font Awesome - Adding FontAwesome Icons */
+@import "@fortawesome/fontawesome-free/css/all.css"; /* Include Font Awesome CSS */
+@import "tailwindcss";
